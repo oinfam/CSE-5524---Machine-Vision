@@ -1,0 +1,70 @@
+from skimage import io, color, feature
+from scipy import ndimage
+import numpy as np
+import math
+import os
+
+
+
+### Problem 1
+sigma = 2.
+def gaus(x, y, sigma=sigma):
+    return 1/(2*math.pi*sigma**2) * np.exp(-((x**2+y**2)/(2*sigma**2)))
+
+x = np.arange(np.ceil(-3*sigma), np.ceil(3*sigma)+1)
+y = x
+x, y = np.meshgrid(x, y)
+mask = gaus(x, y)
+
+file = os.getcwd() + '/Week2/affleck_gray.png'
+affleck = io.imread(file)
+filtered = ndimage.convolve(affleck, mask)
+#io.imshow(filtered, cmap='grey')
+#io.show()
+
+### Problem 2
+def gausdx(x, y, sigma=sigma):
+    return (x)/(2*math.pi*sigma**4) * np.exp(-((x**2+y**2)/(2*sigma**2)))
+def gausdy(x, y, sigma=sigma):
+    return (y)/(2*math.pi*sigma**4) * np.exp(-((x**2+y**2)/(2*sigma**2)))
+
+xMask = gausdx(x, y)
+yMask = gausdy(x, y)
+
+#io.imshow(xMask, cmap='grey')
+#io.show()
+#io.imshow(yMask, cmap='grey')
+#io.show()
+
+# Problem 3
+file = os.getcwd() + '/Week2/IMG_5611.JPG'
+claw = io.imread(file)
+greyClaw = color.rgb2gray(claw)
+filteredX = ndimage.convolve(greyClaw, xMask)
+filteredY = ndimage.convolve(greyClaw, yMask)
+filteredMag = np.sqrt(filteredX**2+filteredY**2)
+
+#io.imshow(filteredMag, cmap='grey')
+#io.show()
+
+### Problem 4
+T = 0.5*filteredMag.max()
+thresholdIm = filteredMag * (filteredMag > T)
+io.imshow(thresholdIm, cmap='grey')
+io.show()
+
+### Problem 5
+sobelX = 1/8 * np.array([[-1, 0, 1],[-2, 0, 2],[-1, 0, 1]])
+sobelY = 1/8 * np.array([[-1, -2, -1],[0, 0, 0],[1, 2, 1]])
+sobelClawX = ndimage.convolve(greyClaw, sobelX)
+sobelClawY = ndimage.convolve(greyClaw, sobelY)
+sobelClaw = np.sqrt(sobelClawX**2+sobelClawY**2)
+T = 0.5*sobelClaw.max()
+thresholdIm = sobelClaw * (sobelClaw > T)
+io.imshow(thresholdIm, cmap='grey')
+io.show()
+
+### Problem 6
+cannyEdges = feature.canny(greyClaw)
+io.imshow(cannyEdges, cmap='grey')
+io.show()

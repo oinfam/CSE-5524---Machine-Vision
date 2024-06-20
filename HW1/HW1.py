@@ -1,13 +1,16 @@
 from skimage import io, color, util
 import numpy as np
+import os
 
 # Problem 1
-""" grayImg = io.imread('buckeyes_gray.bmp')
+file = os.getcwd() + '/HW1/buckeyes_gray.bmp'
+grayImg = io.imread(file)
 io.imshow(grayImg)
 io.show()
 io.imsave('grayImg.jpeg', grayImg)
 
-rgbImg = io.imread('buckeyes_rgb.bmp')
+file = os.getcwd() + '/HW1/buckeyes_rgb.bmp'
+rgbImg = io.imread(file)
 io.imshow(rgbImg)
 io.show()
 io.imsave('rgbImg.jpeg', rgbImg)
@@ -17,7 +20,7 @@ converted = color.rgb2gray(rgbImg)
 io.imshow(converted)
 io.show()
 converted = util.img_as_uint(converted)
-io.imsave('converted.png', converted) """
+io.imsave('converted.png', converted)
 
 # Problem 3
 black = np.zeros((10, 10))
