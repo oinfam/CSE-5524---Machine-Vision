@@ -19,8 +19,8 @@ mask = gaus(x, y)
 file = os.getcwd() + '/Week2/affleck_gray.png'
 affleck = io.imread(file)
 filtered = ndimage.convolve(affleck, mask)
-#io.imshow(filtered, cmap='grey')
-#io.show()
+io.imshow(filtered, cmap='grey')
+io.show()
 
 ### Problem 2
 def gausdx(x, y, sigma=sigma):
@@ -31,21 +31,23 @@ def gausdy(x, y, sigma=sigma):
 xMask = gausdx(x, y)
 yMask = gausdy(x, y)
 
-#io.imshow(xMask, cmap='grey')
-#io.show()
-#io.imshow(yMask, cmap='grey')
-#io.show()
+
+io.imshow(xMask, cmap='grey')
+io.show()
+io.imshow(yMask, cmap='grey')
+io.show()
 
 # Problem 3
 file = os.getcwd() + '/Week2/IMG_5611.JPG'
 claw = io.imread(file)
 greyClaw = color.rgb2gray(claw)
-filteredX = ndimage.convolve(greyClaw, xMask)
-filteredY = ndimage.convolve(greyClaw, yMask)
+sigma = 3.
+filteredX = ndimage.convolve(greyClaw, gausdx(x, y))
+filteredY = ndimage.convolve(greyClaw, gausdy(x, y))
 filteredMag = np.sqrt(filteredX**2+filteredY**2)
 
-#io.imshow(filteredMag, cmap='grey')
-#io.show()
+io.imshow(filteredMag, cmap='grey')
+io.show()
 
 ### Problem 4
 T = 0.5*filteredMag.max()
@@ -59,7 +61,7 @@ sobelY = 1/8 * np.array([[-1, -2, -1],[0, 0, 0],[1, 2, 1]])
 sobelClawX = ndimage.convolve(greyClaw, sobelX)
 sobelClawY = ndimage.convolve(greyClaw, sobelY)
 sobelClaw = np.sqrt(sobelClawX**2+sobelClawY**2)
-T = 0.5*sobelClaw.max()
+T = 0.2*sobelClaw.max()
 thresholdIm = sobelClaw * (sobelClaw > T)
 io.imshow(thresholdIm, cmap='grey')
 io.show()
