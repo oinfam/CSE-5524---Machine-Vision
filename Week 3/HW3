@@ -1,0 +1,141 @@
+from skimage import io, color, data, morphology
+from scipy import ndimage
+import numpy as np
+import os
+
+### Problem 1
+#Gaussian Masks + Sampling
+def downsize(img, a=0.4):
+    mask = np.array([0.25-0.5*a, 0.25, a, 0.25, 0.25-0.5*a])
+    mask = mask[:, None]
+    mask = mask @ mask.T
+    blurred = ndimage.convolve(img, mask)
+    return blurred[::2, ::2]
+#Expanding + Interpolating
+def expand(img):
+    expanded = np.zeros((img.shape[0]*2-1, img.shape[1]*2-1))
+    #First place data into every other row and column
+    for i in range(expanded.shape[0]):
+        for j in range(expanded.shape[1]):
+            if i%2 == 0 and j%2 == 0:
+                expanded[i][j] = img[int(i/2)][int(j/2)]
+    #Then, for any value in an even row and even column, interpolate
+    #using the 4 cornering neighbors
+    for i in range(expanded.shape[0]):
+        for j in range(expanded.shape[1]):
+            if i%2 != 0 and j%2 != 0:
+                neighborValues = np.array([expanded[i+1, j+1], expanded[i-1, j+1], expanded[i+1, j-1], expanded[i-1, j-1]])
+                expanded[i][j] = round(np.mean(neighborValues))
+    #For the remaining spaces, the image must be "bordered" with
+    #mirror values to ensure that the edges have neighbors they
+    #can read values from
+    expanded = np.vstack((expanded[1, :], expanded))
+    expanded = np.vstack((expanded, expanded[-2, :]))
+    expanded = np.column_stack((expanded[:, 1], expanded))
+    expanded = np.column_stack((expanded, expanded[:, -2]))
+    #Finally, interpret the remaining values using 4 adjacent neighbors
+    for i in range(1, expanded.shape[0]-1):
+        for j in range(1, expanded.shape[1]-1):
+            if (i+j)%2 != 0:
+                neighborValues = np.array([expanded[i+1][j], expanded[i-1][j], expanded[i][j+1], expanded[i][j-1]])
+                expanded[i][j] = round(np.mean(neighborValues))
+    #remove added border
+    return expanded[1:-1, 1:-1]
+
+#Load picture data & convert to grayscale
+pic = data.cat()
+greyPic = np.round(255*color.rgb2gray(pic))
+
+#Crop to fit pyramid construction requirements
+lvl0 = greyPic[0:289, 0:449]
+height = lvl0.shape[0]
+width = lvl0.shape[1]
+
+#Create 3 levels and construct the pyramid
+level = 1
+previousImg = lvl0
+rightSide = np.zeros((height, int(width/2+1)))
+rightSideError = np.zeros((height, int(width/2+1)))
+lvl0Error = lvl0 - expand(downsize(lvl0))
+errors = [lvl0Error]
+images = [lvl0]
+r, c = 0, 0
+while level <= 3:
+    nextImg = downsize(previousImg)
+    reconstruction = expand(downsize(nextImg))
+    error = nextImg - reconstruction
+    rightSide[r:r+nextImg.shape[0], c:c+nextImg.shape[1]] = nextImg
+    images.append(nextImg)
+    print(np.any(rightSide<0))
+    rightSideError[r:r+error.shape[0], c:c+error.shape[1]] = error
+    errors.append(error)
+    r += nextImg.shape[0]
+    previousImg = nextImg
+    level += 1
+gaussianPyramid = np.hstack((lvl0, rightSide))
+laplacianPyramid = np.hstack((lvl0Error, rightSideError))
+io.imshow(gaussianPyramid, cmap='grey')
+io.show()
+io.imshow(laplacianPyramid, cmap='grey')
+io.show()
+
+expanded = expand(lvl0)
+io.imshow(expanded, cmap='grey')
+io.show()
+
+#Reconstruct from lvl 3 + errors
+lvl2 = expand(images[3]) + errors[2]
+lvl1 = expand(lvl2) + errors[1]
+fullReconstruction = expand(lvl1) + errors[0]
+io.imshow(fullReconstruction, cmap='grey')
+io.show()
+
+
+### Problem 2
+file = os.getcwd() + '/Week 3/bg000.bmp'
+hallway = io.imread(file)
+file = os.getcwd() + '/Week 3/walk.bmp'
+person = io.imread(file)
+extraction = abs(person - hallway)
+#Apply threshold
+for i in range(extraction.shape[0]):
+    for j in range(extraction.shape[1]):
+        if extraction[i][j] < 50 or extraction[i][j] > 190:
+            extraction[i][j] = 0
+        else:
+            extraction[i][j] = 1
+io.imshow(extraction, cmap='grey')
+io.show()
+
+
+### Problem 3
+fileList = []
+for i in range(30):
+    file = os.getcwd() + '/Week 3/bg' + str(i).zfill(3) + '.bmp'
+    fileList.append(file)
+backgrounds = io.imread_collection(fileList)
+averageBackground = np.mean(backgrounds, axis=0)
+stDevBackground = np.std(backgrounds, axis=0)
+extraction = (person-averageBackground)**2/stDevBackground
+#Apply threshold
+T = 27
+for i in range(extraction.shape[0]):
+    for j in range(extraction.shape[1]):
+        if extraction[i][j] > T**2:
+            extraction[i][j] = 1
+        else:
+            extraction[i][j] = 0
+io.imshow(extraction, cmap='grey')
+io.show()
+
+
+### Problem 4
+dilated = morphology.dilation(extraction)
+io.imshow(dilated, cmap='grey')
+io.show()
+
+
+### Problem 5
+connected = morphology.label(dilated, connectivity=2)
+io.imshow(connected == 2, cmap='grey')
+io.show()
